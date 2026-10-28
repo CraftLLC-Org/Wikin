@@ -5,6 +5,7 @@ A simple, beautiful documentation generator for Python. It extracts docstrings f
 ## Features
 
 - **Function Docstrings**: Standard Python triple-quoted docstrings.
+- **Nested Classes**: Recursively documents inner classes, their methods, and their own nested classes.
 - **Variable Documentation**: 
   - `#: comment before variable`
   - `variable = value #: comment after variable`

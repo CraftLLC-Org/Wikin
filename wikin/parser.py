@@ -31,6 +31,7 @@ class ClassDoc:
     name: str
     docstring: str
     methods: List[FunctionDoc] = field(default_factory=list)
+    classes: List['ClassDoc'] = field(default_factory=list)
 
 @dataclass
 class ModuleDoc:
@@ -197,24 +198,8 @@ class WikinParser:
                     module_doc.functions.append(self._parse_function(node, source))
             
             elif isinstance(node, ast.ClassDef):
-                class_docstring = ast.get_docstring(node)
-                class_info = ClassDoc(name=node.name, docstring=self._process_docstring(class_docstring))
-                
-                # Extract methods from class
-                for subnode in node.body:
-                    if isinstance(subnode, (ast.FunctionDef, ast.AsyncFunctionDef)):
-                        method_docstring = ast.get_docstring(subnode)
-                        is_prop = False
-                        for d in getattr(subnode, 'decorator_list', []):
-                            if isinstance(d, ast.Name) and d.id == 'property':
-                                is_prop = True
-                            elif isinstance(d, ast.Attribute) and d.attr in ('setter', 'deleter'):
-                                is_prop = True
-                        
-                        if method_docstring or is_prop:
-                            class_info.methods.append(self._parse_function(subnode, source))
-                
-                if class_info.docstring or class_info.methods:
+                class_info = self._parse_class(node, source)
+                if class_info.docstring or class_info.methods or class_info.classes:
                     module_doc.classes.append(class_info)
 
         # Extract variables with #: docstrings using tokenize
@@ -571,6 +556,45 @@ class WikinParser:
         out_lines.extend(flush_table())
         out_lines.extend(flush_rest())
         return '\n'.join(out_lines).strip()
+
+    def _parse_class(self, node: ast.ClassDef, source: str) -> ClassDoc:
+        """
+        Internal helper to create a ClassDoc from an AST node.
+
+        Recursively extracts documented methods and nested classes, preserving
+        class hierarchies such as `NYT.Wordle` in the generated documentation.
+
+        Args:
+            node (ast.ClassDef): The AST class definition to document.
+            source (str): Full source text of the file, used for signature extraction.
+
+        Returns:
+            ClassDoc: Documented container with methods and nested classes.
+        """
+        class_info = ClassDoc(
+            name=node.name,
+            docstring=self._process_docstring(ast.get_docstring(node))
+        )
+
+        for subnode in node.body:
+            if isinstance(subnode, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                method_docstring = ast.get_docstring(subnode)
+                is_prop = False
+                for d in getattr(subnode, 'decorator_list', []):
+                    if isinstance(d, ast.Name) and d.id == 'property':
+                        is_prop = True
+                    elif isinstance(d, ast.Attribute) and d.attr in ('setter', 'deleter'):
+                        is_prop = True
+
+                if method_docstring or is_prop:
+                    class_info.methods.append(self._parse_function(subnode, source))
+
+            elif isinstance(subnode, ast.ClassDef):
+                nested = self._parse_class(subnode, source)
+                if nested.docstring or nested.methods or nested.classes:
+                    class_info.classes.append(nested)
+
+        return class_info
 
     def _parse_function(self, node: ast.AST, source: str) -> FunctionDoc:
         """

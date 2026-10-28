@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Wikin v26.3.3 - Parser (wikin.parser) - Documentation</title>
+    <title>Wikin v26.3.4 - Parser (wikin.parser) - Documentation</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
@@ -437,7 +437,7 @@ table {
 <body>
     <aside>
         <div class="brand">
-            <a href="../index.html">Wikin <span class="version">v26.3.3</span></a>
+            <a href="../index.html">Wikin <span class="version">v26.3.4</span></a>
         </div>
         
         
@@ -833,6 +833,56 @@ to dynamically generate strict markdown tables inside the description string.</p
 <tr>
 <td>str</td>
 <td>Flow-processed docstring containing fully constructed Markdown table elements.</td>
+</tr>
+</tbody>
+</table></div>
+                        
+                    </div>
+                    
+                    <div id="wikin-parser-WikinParser-_parse_class" class="sub-item" data-name="_parse_class" style="margin-left: 1.5rem; margin-top: 1rem; border-left: 2px solid var(--border); padding-left: 1rem;">
+                        <div class="item-header">
+                            <span class="item-name searchable" style="font-size: 0.9rem;">_parse_class</span>
+                            <span class="item-type" style="font-size: 0.6rem;">method</span>
+                        </div>
+                        <code class="signature searchable" style="font-size: 0.8rem;">_parse_class(self, node: ast.ClassDef, source: str)</code>
+                        
+                        <div class="item-doc searchable" style="font-size: 0.85rem;"><p>Internal helper to create a ClassDoc from an AST node.</p>
+<p>Recursively extracts documented methods and nested classes, preserving
+class hierarchies such as <code>NYT.Wordle</code> in the generated documentation.</p>
+<h4>Args</h4>
+<table>
+<thead>
+<tr>
+<th>Name</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>node</td>
+<td>ast.ClassDef</td>
+<td>The AST class definition to document.</td>
+</tr>
+<tr>
+<td>source</td>
+<td>str</td>
+<td>Full source text of the file, used for signature extraction.</td>
+</tr>
+</tbody>
+</table>
+<h4>Returns</h4>
+<table>
+<thead>
+<tr>
+<th>Type</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>ClassDoc</td>
+<td>Documented container with methods and nested classes.</td>
 </tr>
 </tbody>
 </table></div>

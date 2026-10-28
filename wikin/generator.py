@@ -20,6 +20,38 @@ from typing import List
 from .parser import ModuleDoc
 
 HTML_TEMPLATE = r"""
+{% macro render_class(mod, cls, parent_id=None, depth=0) %}
+{% set cls_id = ((parent_id ~ '-') if parent_id else '') ~ cls.name %}
+<div id="{{ mod.original_name | replace('.', '-') }}-{{ cls_id }}" class="item" data-name="{{ cls.name }}"{% if depth %} style="margin-left: {{ depth * 1.5 }}rem; margin-top: 1rem; border-left: 2px solid var(--border); padding-left: 1rem;"{% endif %}>
+    <div class="item-header">
+        <div>
+            <span class="item-name searchable">{{ cls.name }}</span>
+            <span class="item-type">class</span>
+        </div>
+    </div>
+    {% if cls.docstring %}
+    <div class="item-doc searchable">{{ cls.docstring | markdown | safe }}</div>
+    {% endif %}
+    
+    {% for method in cls.methods %}
+    <div id="{{ mod.original_name | replace('.', '-') }}-{{ cls_id }}-{{ method.name }}" class="sub-item" data-name="{{ method.name }}" style="margin-left: 1.5rem; margin-top: 1rem; border-left: 2px solid var(--border); padding-left: 1rem;">
+        <div class="item-header">
+            <span class="item-name searchable" style="font-size: 0.9rem;">{{ method.name }}</span>
+            <span class="item-type" style="font-size: 0.6rem;">method</span>
+        </div>
+        <code class="signature searchable" style="font-size: 0.8rem;">{{ method.signature }}</code>
+        {% if method.docstring %}
+        <div class="item-doc searchable" style="font-size: 0.85rem;">{{ method.docstring | markdown | safe }}</div>
+        {% endif %}
+    </div>
+    {% endfor %}
+    
+    {% for nested in cls.classes %}
+    {{ render_class(mod, nested, cls_id, depth + 1) }}
+    {% endfor %}
+</div>
+{% endmacro %}
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -560,30 +592,7 @@ HTML_TEMPLATE = r"""
                 {% if mod.classes %}
                 <div class="category-header"><h3>Classes</h3></div>
                 {% for cls in mod.classes %}
-                <div id="{{ mod.original_name | replace('.', '-') }}-{{ cls.name }}" class="item" data-name="{{ cls.name }}">
-                    <div class="item-header">
-                        <div>
-                            <span class="item-name searchable">{{ cls.name }}</span>
-                            <span class="item-type">class</span>
-                        </div>
-                    </div>
-                    {% if cls.docstring %}
-                    <div class="item-doc searchable">{{ cls.docstring | markdown | safe }}</div>
-                    {% endif %}
-                    
-                    {% for method in cls.methods %}
-                    <div id="{{ mod.original_name | replace('.', '-') }}-{{ cls.name }}-{{ method.name }}" class="sub-item" data-name="{{ method.name }}" style="margin-left: 1.5rem; margin-top: 1rem; border-left: 2px solid var(--border); padding-left: 1rem;">
-                        <div class="item-header">
-                            <span class="item-name searchable" style="font-size: 0.9rem;">{{ method.name }}</span>
-                            <span class="item-type" style="font-size: 0.6rem;">method</span>
-                        </div>
-                        <code class="signature searchable" style="font-size: 0.8rem;">{{ method.signature }}</code>
-                        {% if method.docstring %}
-                        <div class="item-doc searchable" style="font-size: 0.85rem;">{{ method.docstring | markdown | safe }}</div>
-                        {% endif %}
-                    </div>
-                    {% endfor %}
-                </div>
+                {{ render_class(mod, cls) }}
                 {% endfor %}
                 {% endif %}
 
@@ -725,16 +734,16 @@ HTML_TEMPLATE = r"""
                     });
                 }
 
-                // Check classes
-                mod.classes.forEach(cls => {
-                    const clsId = `${modId}-${cls.name}`;
-                    const clsUrl = `${modUrl}#${clsId}`;
+                // Check classes (recursively, including nested classes)
+                const checkClass = (cls, parentId, parentPath) => {
+                    const clsId = `${parentId}-${cls.name}`;
+                    const clsPath = parentPath ? `${parentPath}.${cls.name}` : cls.name;
                     if (cls.name.toLowerCase().includes(q) || (cls.docstring && cls.docstring.toLowerCase().includes(q))) {
                         results.push({
                             type: 'class',
-                            name: cls.name,
+                            name: clsPath,
                             module: mod.name,
-                            url: clsUrl,
+                            url: `${modUrl}#${clsId}`,
                             score: cls.name.toLowerCase().includes(q) ? 8 : 1
                         });
                     }
@@ -744,7 +753,7 @@ HTML_TEMPLATE = r"""
                             if (method.name.toLowerCase().includes(q) || (method.docstring && method.docstring.toLowerCase().includes(q))) {
                                 results.push({
                                     type: 'method',
-                                    name: `${cls.name}.${method.name}`,
+                                    name: `${clsPath}.${method.name}`,
                                     module: mod.name,
                                     url: `${modUrl}#${methodId}`,
                                     score: method.name.toLowerCase().includes(q) ? 6 : 1
@@ -752,7 +761,11 @@ HTML_TEMPLATE = r"""
                             }
                         });
                     }
-                });
+                    if (cls.classes) {
+                        cls.classes.forEach(nested => checkClass(nested, clsId, clsPath));
+                    }
+                };
+                mod.classes.forEach(cls => checkClass(cls, modId, ''));
 
                 // Check functions
                 mod.functions.forEach(func => {
