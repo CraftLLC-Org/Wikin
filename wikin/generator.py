@@ -483,8 +483,9 @@ HTML_TEMPLATE = r"""
             
             <ul id="sidebar-list">
                 {% for mod in modules | sort(attribute='name') %}
+                {% set mod_href = module_prefix ~ mod.original_name ~ '.html' if multipage else '#' ~ (mod.original_name | replace('.', '-')) %}
                 <li data-name="{{ mod.name }}">
-                    <a href="{{ module_prefix }}{{ mod.original_name }}.html" 
+                    <a href="{{ mod_href }}" 
                        class="{% if current_module and current_module.original_name == mod.original_name %}active{% endif %}">
                         {{ mod.name }}
                     </a>
