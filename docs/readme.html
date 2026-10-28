@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Wikin v1.3.1 - Documentation</title>
+    <title>Wikin v26.3.2 - Documentation</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
@@ -437,7 +437,7 @@ table {
 <body>
     <aside>
         <div class="brand">
-            <a href="./index.html">Wikin <span class="version">v1.3.1</span></a>
+            <a href="./index.html">Wikin <span class="version">v26.3.2</span></a>
         </div>
         
         
@@ -502,24 +502,24 @@ table {
             
             <ul id="sidebar-list">
                 
-                <li data-name="CLI Entry Point (__main__)">
-                    <a href="modules/__main__.html" 
+                <li data-name="CLI Entry Point (wikin.__main__)">
+                    <a href="modules/wikin.__main__.html" 
                        class="">
-                        CLI Entry Point (__main__)
+                        CLI Entry Point (wikin.__main__)
                     </a>
                 </li>
                 
-                <li data-name="Generator (generator)">
-                    <a href="modules/generator.html" 
+                <li data-name="Generator (wikin.generator)">
+                    <a href="modules/wikin.generator.html" 
                        class="">
-                        Generator (generator)
+                        Generator (wikin.generator)
                     </a>
                 </li>
                 
-                <li data-name="Parser (parser)">
-                    <a href="modules/parser.html" 
+                <li data-name="Parser (wikin.parser)">
+                    <a href="modules/wikin.parser.html" 
                        class="">
-                        Parser (parser)
+                        Parser (wikin.parser)
                     </a>
                 </li>
                 
@@ -556,7 +556,7 @@ table {
 <li><strong>Multipage Mode</strong>: Generate a clean landing page and separate files for each module.</li>
 <li><strong>Modern UI</strong>: Clean, responsive HTML output with a premium glassmorphic look.</li>
 <li><strong>Markdown Support</strong>: Use Markdown in your docstrings and comments.</li>
-<li><strong>Docstring Tables</strong>: Automatically formats Google-style and NumPy-style parameters, attributes, and returns into elegant Markdown tables.</li>
+<li><strong>Docstring Tables</strong>: Automatically formats Google-style, NumPy-style, and Sphinx/reST-style parameters, attributes, returns, and raises into elegant Markdown tables.</li>
 <li><strong>Addons (Themes &amp; Plugins)</strong>: Customize the look and feel with <code>.wikin</code> packaged CSS themes and JS plugins!</li>
 <li><strong>Custom Pages</strong>: Easily inject <code>README</code> or dynamically parsed <code>LICENSE</code> files right into the sidebar.</li>
 <li><strong>Module Metadata</strong>: Customize how modules appear in the documentation using a <code>Wikin:</code> block.</li>
@@ -581,6 +581,21 @@ rpm = 10
 timeout = 30 #: Connection timeout in seconds
 </code></pre>
 <p>Wikin will pick these up and include them in the generated documentation.</p>
+<h2>Docstring Styles</h2>
+<p>Wikin understands Google, NumPy, and Sphinx/reST (field list) docstrings. reST fields are grouped into tables automatically, including types declared with <code>:type:</code> and <code>:rtype:</code>:</p>
+<pre><code class="language-python">def fetch(address: str) -&gt; dict:
+    &quot;&quot;&quot;
+    Retrieves information for an address.
+
+    :param address: IP address or domain.
+    :param timeout: Request timeout in seconds.
+    :type timeout: int
+    :return: The parsed response data.
+    :rtype: dict
+    :raises ValueError: If the address is empty.
+    &quot;&quot;&quot;
+</code></pre>
+<p>Supported fields are <code>:param:</code>, <code>:type:</code>, <code>:keyword:</code>/<code>:kwarg:</code>, <code>:var:</code>/<code>:ivar:</code>, <code>:returns:</code>/<code>:return:</code>, <code>:rtype:</code>, and <code>:raises:</code>. Indented continuation lines are appended to the previous field's description.</p>
 <h2>Ignoring Files</h2>
 <p>To exclude specific files or directories from being processed, create a <code>.wikinignore</code> file in your <code>docs/</code> folder. It supports standard <code>.gitignore</code> (gitwildmatch) patterns.</p>
 <p><strong>Example <code>docs/.wikinignore</code>:</strong></p>

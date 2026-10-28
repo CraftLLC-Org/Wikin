@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Wikin v1.3.1 - Parser (wikin.parser) - Documentation</title>
+    <title>Wikin v26.3.2 - Parser (wikin.parser) - Documentation</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
@@ -437,7 +437,7 @@ table {
 <body>
     <aside>
         <div class="brand">
-            <a href="../index.html">Wikin <span class="version">v1.3.1</span></a>
+            <a href="../index.html">Wikin <span class="version">v26.3.2</span></a>
         </div>
         
         
@@ -797,8 +797,9 @@ YAML-like snippet in their root docstring block.</p>
                         </div>
                         <code class="signature searchable" style="font-size: 0.8rem;">_process_docstring(self, text: Optional[str])</code>
                         
-                        <div class="item-doc searchable" style="font-size: 0.85rem;"><p>Parses Google and Numpy style docstrings and converts their sections into Markdown tables.</p>
-<p>This function sequentially detects specific section headers such as <code>Args:</code>, <code>Returns:</code>, and <code>Raises:</code> 
+                        <div class="item-doc searchable" style="font-size: 0.85rem;"><p>Parses Google, NumPy, and Sphinx/reST style docstrings and converts their sections into Markdown tables.</p>
+<p>This function sequentially detects specific section headers such as <code>Args:</code>, <code>Returns:</code>, and <code>Raises:</code>,
+NumPy-style underlined sections, and reST field lists (<code>:param name:</code>, <code>:type name:</code>, <code>:return:</code>, <code>:rtype:</code>)
 to dynamically generate strict markdown tables inside the description string.</p>
 <h4>Args</h4>
 <table>
