@@ -12,7 +12,7 @@ A simple, beautiful documentation generator for Python. It extracts docstrings f
 - **Multipage Mode**: Generate a clean landing page and separate files for each module.
 - **Modern UI**: Clean, responsive HTML output with a premium glassmorphic look.
 - **Markdown Support**: Use Markdown in your docstrings and comments.
-- **Docstring Tables**: Automatically formats Google-style and NumPy-style parameters, attributes, and returns into elegant Markdown tables.
+- **Docstring Tables**: Automatically formats Google-style, NumPy-style, and Sphinx/reST-style parameters, attributes, returns, and raises into elegant Markdown tables.
 - **Addons (Themes & Plugins)**: Customize the look and feel with `.wikin` packaged CSS themes and JS plugins!
 - **Custom Pages**: Easily inject `README` or dynamically parsed `LICENSE` files right into the sidebar.
 - **Module Metadata**: Customize how modules appear in the documentation using a `Wikin:` block.
@@ -52,6 +52,26 @@ timeout = 30 #: Connection timeout in seconds
 ```
 
 Wikin will pick these up and include them in the generated documentation.
+
+## Docstring Styles
+
+Wikin understands Google, NumPy, and Sphinx/reST (field list) docstrings. reST fields are grouped into tables automatically, including types declared with `:type:` and `:rtype:`:
+
+```python
+def fetch(address: str) -> dict:
+    """
+    Retrieves information for an address.
+
+    :param address: IP address or domain.
+    :param timeout: Request timeout in seconds.
+    :type timeout: int
+    :return: The parsed response data.
+    :rtype: dict
+    :raises ValueError: If the address is empty.
+    """
+```
+
+Supported fields are `:param:`, `:type:`, `:keyword:`/`:kwarg:`, `:var:`/`:ivar:`, `:returns:`/`:return:`, `:rtype:`, and `:raises:`. Indented continuation lines are appended to the previous field's description.
 
 ## Ignoring Files
 

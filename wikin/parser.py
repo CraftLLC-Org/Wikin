@@ -57,6 +57,14 @@ class WikinParser:
         modules (list): A list of parsed module documentation objects.
         ignore_spec (PathSpec): A PathSpec object used to filter out ignored files based on `.wikinignore`.
     """
+    # reST/Sphinx field-list syntax, e.g. ":param name:", ":type name:", ":return:", ":rtype:".
+    _REST_FIELD_RE = re.compile(r'^\s*:([A-Za-z][\w-]*)\s*(?:([^:]+?))?:\s*(.*)$')
+    _REST_PARAM_KINDS = {'param', 'parameter', 'arg', 'argument', 'key', 'keyword', 'kwarg', 'kwparam'}
+    _REST_TYPE_KINDS = {'type', 'vartype', 'kwtype'}
+    _REST_RETURN_KINDS = {'return', 'returns'}
+    _REST_RAISE_KINDS = {'raise', 'raises', 'except', 'exception'}
+    _REST_ATTR_KINDS = {'var', 'ivar', 'cvar', 'variable', 'attribute', 'attr'}
+
     def __init__(self, root_dir: str):
         """
         Initialize the parser with a root directory or a single file path.
@@ -335,9 +343,10 @@ class WikinParser:
 
     def _process_docstring(self, text: Optional[str]) -> str:
         """
-        Parses Google and Numpy style docstrings and converts their sections into Markdown tables.
+        Parses Google, NumPy, and Sphinx/reST style docstrings and converts their sections into Markdown tables.
         
-        This function sequentially detects specific section headers such as `Args:`, `Returns:`, and `Raises:` 
+        This function sequentially detects specific section headers such as `Args:`, `Returns:`, and `Raises:`,
+        NumPy-style underlined sections, and reST field lists (`:param name:`, `:type name:`, `:return:`, `:rtype:`)
         to dynamically generate strict markdown tables inside the description string.
         
         Args:
@@ -354,27 +363,104 @@ class WikinParser:
         state = "normal"
         table_lines = []
         headers = []
-        
-        def flush_table():
-            if not table_lines: return []
+        rest_fields = []
+
+        def render_table(columns, rows):
+            if not rows:
+                return []
             
             keep_cols = []
-            for i, h in enumerate(headers[1:]):
-                has_data = any(i < len(row) and str(row[i]).strip() for row in table_lines)
+            for i, h in enumerate(columns[1:]):
+                has_data = any(i < len(row) and str(row[i]).strip() for row in rows)
                 if has_data or h != "Type":
                     keep_cols.append(i)
                     
-            final_headers = [headers[i + 1] for i in keep_cols]
+            final_headers = [columns[i + 1] for i in keep_cols]
             
-            res = [f"#### {headers[0]}", ""]
+            res = [f"#### {columns[0]}", ""]
             res.append("| " + " | ".join(final_headers) + " |")
             res.append("|" + "|".join(["---"] * len(final_headers)) + "|")
-            for row in table_lines:
+            for row in rows:
                 safe_row = [str(row[i]).replace('|', '\\|') if i < len(row) else "" for i in keep_cols]
                 res.append("| " + " | ".join(safe_row) + " |")
             res.append("")
+            return res
+
+        def flush_table():
+            if not table_lines: return []
+            
+            res = render_table(headers, table_lines)
             table_lines.clear()
             headers.clear()
+            return res
+
+        def rest_entry(kind, name, desc, field_types):
+            if kind in self._REST_PARAM_KINDS or kind in self._REST_ATTR_KINDS:
+                title = "Parameters" if kind in self._REST_PARAM_KINDS else "Attributes"
+                
+                field_name = name
+                field_type = ""
+                if field_name:
+                    # Some projects inline the type, e.g. ":param str name: ...".
+                    parts = field_name.split(None, 1)
+                    if len(parts) == 2:
+                        field_type, field_name = parts[0], parts[1].strip()
+                    # A dedicated ":type name:" field is more specific than an inline type.
+                    field_type = field_types.get(field_name) or field_type
+                        
+                return (title, "Name", "Type", "Description"), [field_name, field_type, desc]
+
+            if kind in self._REST_RETURN_KINDS:
+                # Prefer ":rtype:", but allow an inline ":return dict: ..." type.
+                return ("Returns", "Type", "Description"), [field_types.get("return") or name, desc]
+
+            if kind in self._REST_RAISE_KINDS:
+                return ("Raises", "Type", "Description"), [name, desc]
+
+            return None
+
+        def flush_rest():
+            if not rest_fields:
+                return []
+            
+            # reST stores types in separate ":type name:" fields, so resolve them first.
+            field_types = {}
+            for kind, name, desc, _raw in rest_fields:
+                if kind == "rtype":
+                    field_types["return"] = desc
+                elif kind in self._REST_TYPE_KINDS and name:
+                    field_types[name] = desc
+
+            res = []
+            groups = {}
+            order = []
+
+            def flush_groups():
+                for title in order:
+                    columns, rows = groups[title]
+                    res.extend(render_table(columns, rows))
+                order.clear()
+                groups.clear()
+
+            for kind, name, desc, raw in rest_fields:
+                if kind == "rtype" or kind in self._REST_TYPE_KINDS:
+                    continue
+                    
+                entry = rest_entry(kind, name, desc, field_types)
+                if entry is None:
+                    # Unknown field: leave the original line untouched.
+                    flush_groups()
+                    res.append(raw)
+                    continue
+                    
+                columns, row = entry
+                if columns[0] not in groups:
+                    groups[columns[0]] = (columns, [])
+                    order.append(columns[0])
+                groups[columns[0]][1].append(row)
+
+            flush_groups()
+            rest_fields.clear()
             return res
 
         i = 0
@@ -383,7 +469,13 @@ class WikinParser:
             stripped = line.strip()
             
             if state == "normal":
-                if stripped in ('Args:', 'Arguments:', 'Parameters:', 'Keyword Args:', 'Keyword Arguments:', 'Attributes:', 'Properties:'):
+                rest_match = self._REST_FIELD_RE.match(line)
+                if rest_match:
+                    out_lines.extend(flush_table())
+                    rest_fields.clear()
+                    state = "rest_fields"
+                    i -= 1
+                elif stripped in ('Args:', 'Arguments:', 'Parameters:', 'Keyword Args:', 'Keyword Arguments:', 'Attributes:', 'Properties:'):
                     out_lines.extend(flush_table())
                     headers = [stripped[:-1], "Name", "Type", "Description"]
                     state = "google_args"
@@ -432,6 +524,21 @@ class WikinParser:
                         else: table_lines.append(["", stripped])
                 else:
                     out_lines.extend(flush_table()); state = "normal"; i -= 1
+
+            elif state == "rest_fields":
+                m = self._REST_FIELD_RE.match(line)
+                if m:
+                    rest_fields.append([m.group(1).lower(), (m.group(2) or "").strip(), m.group(3).strip(), line.strip()])
+                elif not stripped:
+                    out_lines.extend(flush_rest()); state = "normal"
+                elif rest_fields and line[:1].isspace():
+                    # Indented continuation of the previous field's description.
+                    if rest_fields[-1][2]:
+                        rest_fields[-1][2] += " " + stripped
+                    else:
+                        rest_fields[-1][2] = stripped
+                else:
+                    out_lines.extend(flush_rest()); state = "normal"; i -= 1
                     
             elif state == "numpy_args":
                 if not stripped:
@@ -462,6 +569,7 @@ class WikinParser:
             i += 1
             
         out_lines.extend(flush_table())
+        out_lines.extend(flush_rest())
         return '\n'.join(out_lines).strip()
 
     def _parse_function(self, node: ast.AST, source: str) -> FunctionDoc:
